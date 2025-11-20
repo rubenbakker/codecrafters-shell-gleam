@@ -1,5 +1,6 @@
 import executable
 import gleam/erlang
+import gleam/erlang/charlist
 import gleam/int
 import gleam/io
 import gleam/list
@@ -33,6 +34,10 @@ fn repl() -> Nil {
     ["echo", ..args] -> {
       io.println(string.join(args, " "))
     }
+    ["pwd"] -> {
+      let assert Ok(path) = get_cwd()
+      io.println(charlist.to_string(path))
+    }
     [command, ..rest] -> {
       executable.execute(command, rest)
     }
@@ -44,3 +49,6 @@ fn repl() -> Nil {
 
 @external(erlang, "exit_ffi", "do_exit")
 fn exit(status: Int) -> Nil
+
+@external(erlang, "file", "get_cwd")
+fn get_cwd() -> Result(charlist.Charlist, Nil)
