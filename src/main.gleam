@@ -40,12 +40,13 @@ fn repl() -> Nil {
       io.println(charlist.to_string(path))
     }
     ["cd", path] -> {
-      case simplifile.is_directory(path) {
-        Ok(_) -> {
+      let assert Ok(is_directory) = simplifile.is_directory(path)
+      case is_directory {
+        True -> {
           let _ = set_cwd(charlist.from_string(path))
           Nil
         }
-        Error(_) -> {
+        False -> {
           io.println("cd: " <> path <> ": No such file or directory")
           Nil
         }
