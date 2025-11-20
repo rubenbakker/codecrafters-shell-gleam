@@ -25,7 +25,7 @@ pub fn execute(command, args) -> Nil {
     option.Some(_) -> {
       let command_line = string.join([command, ..args], " ")
       cmd(charlist.from_string(command_line))
-      |> io.println
+      |> io.print
       Nil
     }
     option.None -> {
