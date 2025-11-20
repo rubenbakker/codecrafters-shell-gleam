@@ -3,6 +3,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/string
+import typebuiltin
 
 pub fn main() {
   repl()
@@ -26,12 +27,7 @@ fn repl() -> Nil {
       exit(status)
     }
     ["type", command] -> {
-      case command {
-        "type" | "exit" | "echo" -> {
-          io.println(command <> " is a shell builtin")
-        }
-        _ -> io.println(command <> ": not found")
-      }
+      typebuiltin.perform(command)
     }
     ["echo", ..args] -> {
       io.println(string.join(args, " "))
