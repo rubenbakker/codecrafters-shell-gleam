@@ -1,6 +1,7 @@
 import gleam/erlang
 import gleam/int
 import gleam/io
+import gleam/list
 import gleam/string
 
 pub fn main() {
@@ -21,6 +22,14 @@ fn repl() -> Nil {
     ["exit", status] -> {
       let assert Ok(status) = int.parse(status)
       exit(status)
+    }
+    ["echo", ..args] -> {
+      let args =
+        args
+        |> list.map(string.trim)
+        |> list.filter(fn(arg) { !string.is_empty(arg) })
+        |> string.join(" ")
+      io.println(args)
     }
     [command, ..] -> {
       io.println(command <> ": command not found")
