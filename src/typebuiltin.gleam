@@ -4,7 +4,7 @@ import gleam/option
 
 pub fn perform(command) -> Nil {
   case command {
-    "type" | "exit" | "echo" -> {
+    "type" | "exit" | "echo" | "pwd" -> {
       io.println(command <> " is a shell builtin")
       Nil
     }
