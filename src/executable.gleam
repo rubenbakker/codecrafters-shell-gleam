@@ -23,7 +23,7 @@ pub fn find_executable(command) -> option.Option(String) {
 pub fn execute(command, args) -> Nil {
   case find_executable(command) {
     option.Some(path) -> {
-      let command_line = string.join([path, path, ..args], " ")
+      let command_line = string.join([path, command, ..args], " ")
       cmd(charlist.from_string(command_line))
       |> io.println
       Nil
