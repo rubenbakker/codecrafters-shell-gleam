@@ -1,3 +1,4 @@
+import executable
 import gleam/erlang
 import gleam/int
 import gleam/io
@@ -32,8 +33,8 @@ fn repl() -> Nil {
     ["echo", ..args] -> {
       io.println(string.join(args, " "))
     }
-    [command, ..] -> {
-      io.println(command <> ": command not found")
+    [command, ..rest] -> {
+      executable.execute(command, rest)
     }
     [] -> Nil
   }
