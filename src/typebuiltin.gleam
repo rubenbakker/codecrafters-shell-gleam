@@ -1,5 +1,4 @@
 import executable
-import filepath
 import gleam/io
 import gleam/option
 
@@ -11,8 +10,7 @@ pub fn perform(command) -> Nil {
     }
     _ -> {
       case executable.find_executable(command) {
-        option.Some(path) ->
-          io.println(command <> " is " <> filepath.join(path, command))
+        option.Some(path) -> io.println(command <> " is " <> path)
         option.None -> io.println(command <> ": not found")
       }
       Nil
