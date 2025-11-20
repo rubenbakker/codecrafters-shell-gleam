@@ -13,7 +13,11 @@ fn repl() -> Nil {
     cmd
     |> string.trim
     |> string.split(" ")
+
   case arguments {
+    ["exit"] -> {
+      exit(0)
+    }
     ["exit", status] -> {
       let assert Ok(status) = int.parse(status)
       exit(status)
@@ -23,6 +27,7 @@ fn repl() -> Nil {
     }
     [] -> Nil
   }
+
   repl()
 }
 
