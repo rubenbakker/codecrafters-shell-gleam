@@ -14,6 +14,8 @@ fn repl() -> Nil {
     cmd
     |> string.trim
     |> string.split(" ")
+    |> list.map(string.trim)
+    |> list.filter(fn(arg) { !string.is_empty(arg) })
 
   case arguments {
     ["exit"] -> {
@@ -23,13 +25,16 @@ fn repl() -> Nil {
       let assert Ok(status) = int.parse(status)
       exit(status)
     }
+    ["type", command] -> {
+      case command {
+        "type" | "exit" | "echo" -> {
+          io.println(command <> " is a shell builtin")
+        }
+        _ -> io.println(command <> ": not found")
+      }
+    }
     ["echo", ..args] -> {
-      let args =
-        args
-        |> list.map(string.trim)
-        |> list.filter(fn(arg) { !string.is_empty(arg) })
-        |> string.join(" ")
-      io.println(args)
+      io.println(string.join(args, " "))
     }
     [command, ..] -> {
       io.println(command <> ": command not found")
