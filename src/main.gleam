@@ -5,6 +5,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/string
+import simplifile
 import typebuiltin
 
 pub fn main() {
@@ -38,6 +39,19 @@ fn repl() -> Nil {
       let assert Ok(path) = get_cwd()
       io.println(charlist.to_string(path))
     }
+    ["cd", path] -> {
+      case simplifile.is_directory(path) {
+        Ok(_) -> {
+          let _ = set_cwd(charlist.from_string(path))
+          Nil
+        }
+        Error(_) -> {
+          io.println("cd: " <> path <> ": No such file or directory")
+          Nil
+        }
+      }
+      Nil
+    }
     [command, ..rest] -> {
       executable.execute(command, rest)
     }
@@ -52,3 +66,6 @@ fn exit(status: Int) -> Nil
 
 @external(erlang, "file", "get_cwd")
 fn get_cwd() -> Result(charlist.Charlist, Nil)
+
+@external(erlang, "file", "set_cwd")
+fn set_cwd(path: charlist.Charlist) -> Result(Nil, Nil)
