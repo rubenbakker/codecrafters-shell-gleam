@@ -1,3 +1,4 @@
+import envoy
 import executable
 import filepath
 import gleam/erlang
@@ -43,10 +44,17 @@ fn repl() -> Nil {
     ["cd", dir] -> {
       let dir = case filepath.is_absolute(dir) {
         True -> dir
-        False -> {
-          let assert Ok(cwd) = get_cwd()
-          filepath.join(charlist.to_string(cwd), dir)
-        }
+        False ->
+          case dir {
+            "~" <> rest -> {
+              let assert Ok(home) = envoy.get("HOME")
+              filepath.join(home, rest)
+            }
+            _ -> {
+              let assert Ok(cwd) = get_cwd()
+              filepath.join(charlist.to_string(cwd), dir)
+            }
+          }
       }
       let assert Ok(dir) = filepath.expand(dir)
       let assert Ok(is_directory) = simplifile.is_directory(dir)
