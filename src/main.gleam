@@ -1,4 +1,5 @@
 import executable
+import filepath
 import gleam/erlang
 import gleam/erlang/charlist
 import gleam/int
@@ -39,15 +40,23 @@ fn repl() -> Nil {
       let assert Ok(path) = get_cwd()
       io.println(charlist.to_string(path))
     }
-    ["cd", path] -> {
-      let assert Ok(is_directory) = simplifile.is_directory(path)
+    ["cd", dir] -> {
+      let dir = case filepath.is_absolute(dir) {
+        True -> dir
+        False -> {
+          let assert Ok(cwd) = get_cwd()
+          filepath.join(charlist.to_string(cwd), dir)
+        }
+      }
+      let assert Ok(dir) = filepath.expand(dir)
+      let assert Ok(is_directory) = simplifile.is_directory(dir)
       case is_directory {
         True -> {
-          let _ = set_cwd(charlist.from_string(path))
+          let _ = set_cwd(charlist.from_string(dir))
           Nil
         }
         False -> {
-          io.println("cd: " <> path <> ": No such file or directory")
+          io.println("cd: " <> dir <> ": No such file or directory")
           Nil
         }
       }
