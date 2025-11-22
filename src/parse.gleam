@@ -7,7 +7,7 @@ pub fn parse(input: String) -> Result(List(String), Nil) {
   let input =
     input
     |> string.trim()
-    |> string.replace("''", " ")
+    |> string.replace("''", "")
   let args_parser = party.many(arguments_parser())
   party.go(args_parser, input)
   |> result.map(fn(result) {
