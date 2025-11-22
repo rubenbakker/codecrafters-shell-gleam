@@ -1,13 +1,12 @@
+import cdbuiltin
 import executable
 import externalutils
-import fileutils
 import gleam/erlang
 import gleam/erlang/charlist
 import gleam/int
 import gleam/io
-import gleam/list
 import gleam/string
-import simplifile
+import parse
 import typebuiltin
 
 pub fn main() {
@@ -15,15 +14,9 @@ pub fn main() {
 }
 
 fn repl() -> Nil {
-  let assert Ok(cmd) = erlang.get_line("$ ")
-  let arguments =
-    cmd
-    |> string.trim
-    |> string.split(" ")
-    |> list.map(string.trim)
-    |> list.filter(fn(arg) { !string.is_empty(arg) })
-
-  case arguments {
+  let assert Ok(input_line) = erlang.get_line("$ ")
+  let assert Ok(args) = parse.parse(input_line)
+  case args {
     ["exit"] -> {
       externalutils.exit(0)
     }
@@ -42,19 +35,7 @@ fn repl() -> Nil {
       io.println(charlist.to_string(path))
     }
     ["cd", dir] -> {
-      let assert Ok(dir) = fileutils.expand_path(dir)
-      let assert Ok(is_directory) = simplifile.is_directory(dir)
-      case is_directory {
-        True -> {
-          let _ = externalutils.set_cwd(charlist.from_string(dir))
-          Nil
-        }
-        False -> {
-          io.println("cd: " <> dir <> ": No such file or dilsirectory")
-          Nil
-        }
-      }
-      Nil
+      cdbuiltin.perform(dir)
     }
     [command, ..rest] -> {
       executable.execute(command, rest)
