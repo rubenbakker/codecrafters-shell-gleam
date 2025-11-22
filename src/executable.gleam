@@ -1,11 +1,11 @@
 import envoy
 import filepath
-import gleam/erlang/charlist
 import gleam/io
 import gleam/list
 import gleam/option
 import gleam/set
 import gleam/string
+import shellout
 import simplifile
 
 pub fn find_executable(command) -> option.Option(String) {
@@ -21,12 +21,11 @@ pub fn find_executable(command) -> option.Option(String) {
 }
 
 pub fn execute(command, args) -> Nil {
-  let args = list.map(args, fn(a) { "'" <> a <> "'" })
   case find_executable(command) {
     option.Some(_) -> {
-      let command_line = string.join([command, ..args], " ")
-      cmd(charlist.from_string(command_line))
-      |> io.print
+      let assert Ok(output) =
+        shellout.command(run: command, in: ".", with: args, opt: [])
+      io.print(output)
       Nil
     }
     option.None -> {
@@ -48,6 +47,3 @@ fn check_executable(path, command) -> Bool {
     _ -> False
   }
 }
-
-@external(erlang, "os", "cmd")
-fn cmd(command_line: charlist.Charlist) -> String
