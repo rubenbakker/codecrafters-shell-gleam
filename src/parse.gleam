@@ -3,7 +3,7 @@ import gleam/result
 import gleam/string
 import party
 
-pub fn parse(input: String) -> Result(List(String), Nil) {
+pub fn parse_recursion(input: String) -> Result(List(String), Nil) {
   let result = parse_command_with_quotes(string.drop_right(input, 1))
   Ok(result)
 }
@@ -64,11 +64,12 @@ fn parse_command_with_quotes_inner(
   }
 }
 
-pub fn parse_old(input: String) -> Result(List(String), Nil) {
+pub fn parse(input: String) -> Result(List(String), Nil) {
   let input =
     input
     |> string.trim()
     |> string.replace("''", "")
+    |> string.replace("\"\"", "")
   let args_parser = party.many(arguments_parser())
   party.go(args_parser, input)
   |> result.map(fn(result) {
