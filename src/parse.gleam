@@ -4,7 +4,10 @@ import gleam/string
 import party
 
 pub fn parse(input: String) -> Result(List(String), Nil) {
-  let input = string.trim(input)
+  let input =
+    input
+    |> string.trim()
+    |> string.replace("''", " ")
   let args_parser = party.many(arguments_parser())
   party.go(args_parser, input)
   |> result.map(fn(result) {
