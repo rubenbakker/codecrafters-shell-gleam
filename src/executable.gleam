@@ -22,9 +22,9 @@ pub fn find_executable(command) -> option.Option(String) {
 
 pub fn execute(command, args) -> Nil {
   case find_executable(command) {
-    option.Some(_) -> {
+    option.Some(absolute_command) -> {
       let assert Ok(output) =
-        shellout.command(run: command, in: ".", with: args, opt: [])
+        shellout.command(run: absolute_command, in: ".", with: args, opt: [])
       io.print(output)
       Nil
     }
