@@ -21,6 +21,7 @@ pub fn find_executable(command) -> option.Option(String) {
 }
 
 pub fn execute(command, args) -> Nil {
+  let args = list.map(args, fn(a) { "'" <> a <> "'" })
   case find_executable(command) {
     option.Some(_) -> {
       let command_line = string.join([command, ..args], " ")
