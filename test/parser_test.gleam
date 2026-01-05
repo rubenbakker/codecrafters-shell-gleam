@@ -20,3 +20,8 @@ pub fn single_quoted_args_test() {
   assert Ok(["/usr/bin/bar", "multiple   words", "yesyes"])
     == parser.parse("/usr/bin/bar 'multiple   words' yes''yes")
 }
+
+pub fn escaping_test() {
+  assert Ok(["/usr/bin/bar", "'multiple   words'", "yesyes"])
+    == parser.parse("/usr/bin/bar \\'multiple\\ \\ \\ words\\'  yesyes   ")
+}

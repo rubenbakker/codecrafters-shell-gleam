@@ -76,11 +76,29 @@ fn consume_word(parser: Parser, arg: String) -> Parser {
       parser |> advance() |> change_mode(End) |> add_arg(arg)
     }
     option.Some(value) -> {
-      case !list.contains(non_word, value) {
-        True -> advance(parser) |> consume_word(string.concat([arg, value]))
-        False -> parser |> add_arg(arg) |> determine_mode(value)
+      case value {
+        "\\" -> {
+          parser |> advance() |> consume_word_escaped(arg)
+        }
+        _ -> {
+          case !list.contains(non_word, value) {
+            True -> advance(parser) |> consume_word(string.concat([arg, value]))
+            False -> parser |> add_arg(arg) |> determine_mode(value)
+          }
+        }
       }
     }
+  }
+}
+
+fn consume_word_escaped(parser: Parser, arg: String) -> Parser {
+  let next = string_reader.peek(parser.reader)
+  case next {
+    option.None -> {
+      parser |> advance() |> change_mode(End) |> add_arg(arg)
+    }
+    option.Some(value) ->
+      advance(parser) |> consume_word(string.concat([arg, value]))
   }
 }
 
