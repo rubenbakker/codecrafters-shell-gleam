@@ -1,3 +1,4 @@
+import command/shellout
 import envoy
 import filepath
 import gleam/io
@@ -5,7 +6,6 @@ import gleam/list
 import gleam/option
 import gleam/set
 import gleam/string
-import shellout
 import simplifile
 
 pub fn find_executable(command) -> option.Option(String) {
@@ -24,7 +24,13 @@ pub fn execute(command, args) -> Nil {
   case find_executable(command) {
     option.Some(_) -> {
       let assert Ok(output) =
-        shellout.command(run: command, in: ".", with: args, opt: [])
+        shellout.command(
+          run: command,
+          alias: command,
+          in: ".",
+          with: args,
+          opt: [],
+        )
       io.print(output)
       Nil
     }

@@ -1,12 +1,11 @@
 import cdbuiltin
 import executable
 import externalutils
-import gleam/erlang
 import gleam/erlang/charlist
 import gleam/int
 import gleam/io
 import gleam/string
-import parse
+import parser
 import typebuiltin
 
 pub fn main() {
@@ -14,8 +13,8 @@ pub fn main() {
 }
 
 fn repl() -> Nil {
-  let assert Ok(input_line) = erlang.get_line("$ ")
-  let assert Ok(args) = parse.parse(input_line)
+  let assert Ok(input_line) = externalutils.get_line("$ ")
+  let assert Ok(args) = parser.parse(input_line)
   case args {
     ["exit"] -> {
       externalutils.exit(0)

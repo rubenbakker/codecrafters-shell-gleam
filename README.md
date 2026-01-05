@@ -32,3 +32,10 @@ Note: This section is for stages 2 and beyond.
    `src/main.gleam`.
 1. Commit your changes and run `git push origin master` to submit your solution
    to CodeCrafters. Test output will be streamed to your terminal.
+
+## Dependencies
+
+- *gleam_stdlib* - Gleam standard library
+- *envoy* - Reading environment variables
+- *shellout* - Starting subprocesses
+- *simplifile* - file system access
