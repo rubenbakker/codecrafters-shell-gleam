@@ -90,7 +90,7 @@ fn consume_word(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg()
+      parser |> advance() |> determine_mode()
     }
     option.Some(value) -> {
       case value {
@@ -100,7 +100,7 @@ fn consume_word(parser: Parser) -> Parser {
         _ -> {
           case !list.contains(non_word, value) {
             True -> advance(parser) |> append_to_arg(value) |> consume_word()
-            False -> parser |> add_arg() |> determine_mode()
+            False -> parser |> determine_mode()
           }
         }
       }
@@ -112,7 +112,7 @@ fn consume_word_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg()
+      parser |> advance() |> determine_mode()
     }
     option.Some(value) ->
       advance(parser) |> append_to_arg(value) |> consume_word()
@@ -123,7 +123,7 @@ fn consume_double_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg()
+      parser |> advance() |> determine_mode()
     }
     option.Some(value) -> {
       case value {
@@ -147,7 +147,7 @@ fn consume_double_quote_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg()
+      parser |> advance() |> determine_mode()
     }
     option.Some(value) ->
       case value {
@@ -165,14 +165,14 @@ fn consume_single_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg()
+      parser |> advance() |> determine_mode()
     }
     option.Some(value) -> {
       case value == "'" {
         True ->
           case parser.current_arg {
             "" -> parser |> advance() |> consume_single_quote()
-            _ -> parser |> advance() |> add_arg() |> determine_mode()
+            _ -> parser |> advance() |> determine_mode()
           }
         False ->
           parser
