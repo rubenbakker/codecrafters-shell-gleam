@@ -57,7 +57,7 @@ fn skip_whitespace(parser: Parser) -> Parser {
     option.Some(value) ->
       case list.contains(whitespace, value) {
         True -> advance(parser) |> skip_whitespace()
-        False -> determine_mode(parser, value)
+        False -> determine_mode(parser)
       }
   }
 }
@@ -83,7 +83,7 @@ fn consume_word(parser: Parser, arg: String) -> Parser {
         _ -> {
           case !list.contains(non_word, value) {
             True -> advance(parser) |> consume_word(string.concat([arg, value]))
-            False -> parser |> add_arg(arg) |> determine_mode(value)
+            False -> parser |> add_arg(arg) |> determine_mode()
           }
         }
       }
@@ -109,29 +109,35 @@ fn consume_double_quote(parser: Parser, arg: String) -> Parser {
       parser |> advance() |> change_mode(End) |> add_arg(arg)
     }
     option.Some(value) -> {
-      case value == "\"" {
-        True ->
+      case value {
+        "\"" ->
           case arg {
             "" -> parser |> advance() |> consume_double_quote(arg)
-            _ -> {
-              let parser = advance(parser)
-              case string_reader.peek(parser.reader) {
-                option.None ->
-                  parser |> advance() |> change_mode(End) |> add_arg(arg)
-                option.Some(value) -> {
-                  case determine_mode(parser, value).mode {
-                    DoubleQuote ->
-                      parser |> advance() |> consume_double_quote(arg)
-                    _ -> parser |> add_arg(arg) |> determine_mode(value)
-                  }
-                }
-              }
-            }
+            _ -> parser |> advance() |> add_arg(arg) |> determine_mode()
           }
-        False ->
-          advance(parser) |> consume_double_quote(string.concat([arg, value]))
+        "\\" -> parser |> advance() |> consume_double_quote_escaped(arg)
+        _ ->
+          parser
+          |> advance()
+          |> consume_double_quote(string.concat([arg, value]))
       }
     }
+  }
+}
+
+fn consume_double_quote_escaped(parser: Parser, arg: String) -> Parser {
+  let next = string_reader.peek(parser.reader)
+  case next {
+    option.None -> {
+      parser |> advance() |> change_mode(End) |> add_arg(arg)
+    }
+    option.Some(value) ->
+      case value {
+        "\"" ->
+          advance(parser) |> consume_double_quote(string.concat([arg, value]))
+        _ ->
+          advance(parser) |> consume_double_quote(string.concat([arg, value]))
+      }
   }
 }
 
@@ -146,38 +152,33 @@ fn consume_single_quote(parser: Parser, arg: String) -> Parser {
         True ->
           case arg {
             "" -> parser |> advance() |> consume_single_quote(arg)
-            _ -> {
-              let parser = advance(parser)
-              case string_reader.peek(parser.reader) {
-                option.None ->
-                  parser |> advance() |> change_mode(End) |> add_arg(arg)
-                option.Some(value) -> {
-                  case determine_mode(parser, value).mode {
-                    SingleQuote ->
-                      parser |> advance() |> consume_single_quote(arg)
-                    _ -> parser |> add_arg(arg) |> determine_mode(value)
-                  }
-                }
-              }
-            }
+            _ -> parser |> advance() |> add_arg(arg) |> determine_mode()
           }
         False ->
-          advance(parser) |> consume_single_quote(string.concat([arg, value]))
+          parser
+          |> advance()
+          |> consume_single_quote(string.concat([arg, value]))
       }
     }
   }
 }
 
-fn determine_mode(parser: Parser, char: String) -> Parser {
-  let mode = case char {
-    "" -> End
-    "\"" -> DoubleQuote
-    "'" -> SingleQuote
-    " " -> Whitespace
-    "\r" -> Whitespace
-    "\n" -> Whitespace
-    "\t" -> Whitespace
-    _ -> Word
+fn determine_mode(parser: Parser) -> Parser {
+  let value = string_reader.peek(parser.reader)
+  let mode = case value {
+    option.None -> End
+    option.Some(char) -> {
+      case char {
+        "" -> End
+        "\"" -> DoubleQuote
+        "'" -> SingleQuote
+        " " -> Whitespace
+        "\r" -> Whitespace
+        "\n" -> Whitespace
+        "\t" -> Whitespace
+        _ -> Word
+      }
+    }
   }
   change_mode(parser, mode)
 }
