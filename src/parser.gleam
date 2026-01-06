@@ -132,7 +132,6 @@ fn consume_double_quote(parser: Parser) -> Parser {
             "" -> parser |> advance() |> consume_double_quote()
             _ -> parser |> advance() |> determine_mode()
           }
-        "'" -> parser |> determine_mode()
         "\\" -> parser |> advance() |> consume_double_quote_escaped()
         _ ->
           parser
