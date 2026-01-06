@@ -22,21 +22,29 @@ type ParserMode {
 }
 
 type Parser {
-  Parser(reader: Reader, mode: ParserMode, args: List(String))
+  Parser(
+    reader: Reader,
+    mode: ParserMode,
+    args: List(String),
+    current_arg: String,
+  )
 }
 
 fn create_parser(arg_string: String) -> Parser {
-  let arg_string =
-    arg_string |> string.replace("\"\"", "") |> string.replace("''", "")
-  Parser(reader: string_reader.reader(arg_string), mode: Whitespace, args: [])
+  Parser(
+    reader: string_reader.reader(arg_string),
+    mode: Whitespace,
+    args: [],
+    current_arg: "",
+  )
 }
 
 fn parse_to_end(parser: Parser) -> Result(List(String), ParseError) {
   case parser.mode {
     Whitespace -> skip_whitespace(parser) |> parse_to_end()
-    Word -> consume_word(parser, "") |> parse_to_end()
-    DoubleQuote -> consume_double_quote(parser, "") |> parse_to_end()
-    SingleQuote -> consume_single_quote(parser, "") |> parse_to_end()
+    Word -> consume_word(parser) |> parse_to_end()
+    DoubleQuote -> consume_double_quote(parser) |> parse_to_end()
+    SingleQuote -> consume_single_quote(parser) |> parse_to_end()
     End -> Ok(parser.args)
   }
 }
@@ -62,28 +70,37 @@ fn skip_whitespace(parser: Parser) -> Parser {
   }
 }
 
-fn add_arg(parser: Parser, arg: String) -> Parser {
-  case arg {
+fn append_to_arg(parser: Parser, value: String) -> Parser {
+  Parser(..parser, current_arg: string.concat([parser.current_arg, value]))
+}
+
+fn add_arg(parser: Parser) -> Parser {
+  case parser.current_arg {
     "" -> parser
-    _ -> Parser(..parser, args: list.append(parser.args, [arg]))
+    _ ->
+      Parser(
+        ..parser,
+        args: list.append(parser.args, [parser.current_arg]),
+        current_arg: "",
+      )
   }
 }
 
-fn consume_word(parser: Parser, arg: String) -> Parser {
+fn consume_word(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg(arg)
+      parser |> advance() |> change_mode(End) |> add_arg()
     }
     option.Some(value) -> {
       case value {
         "\\" -> {
-          parser |> advance() |> consume_word_escaped(arg)
+          parser |> advance() |> consume_word_escaped()
         }
         _ -> {
           case !list.contains(non_word, value) {
-            True -> advance(parser) |> consume_word(string.concat([arg, value]))
-            False -> parser |> add_arg(arg) |> determine_mode()
+            True -> advance(parser) |> append_to_arg(value) |> consume_word()
+            False -> parser |> add_arg() |> determine_mode()
           }
         }
       }
@@ -91,73 +108,77 @@ fn consume_word(parser: Parser, arg: String) -> Parser {
   }
 }
 
-fn consume_word_escaped(parser: Parser, arg: String) -> Parser {
+fn consume_word_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg(arg)
+      parser |> advance() |> change_mode(End) |> add_arg()
     }
     option.Some(value) ->
-      advance(parser) |> consume_word(string.concat([arg, value]))
+      advance(parser) |> append_to_arg(value) |> consume_word()
   }
 }
 
-fn consume_double_quote(parser: Parser, arg: String) -> Parser {
+fn consume_double_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg(arg)
+      parser |> advance() |> change_mode(End) |> add_arg()
     }
     option.Some(value) -> {
       case value {
         "\"" ->
-          case arg {
-            "" -> parser |> advance() |> consume_double_quote(arg)
-            _ -> parser |> advance() |> add_arg(arg) |> determine_mode()
+          case parser.current_arg {
+            "" -> parser |> advance() |> consume_double_quote()
+            _ -> parser |> advance() |> determine_mode()
           }
-        "\\" -> parser |> advance() |> consume_double_quote_escaped(arg)
+        "\\" -> parser |> advance() |> consume_double_quote_escaped()
         _ ->
           parser
           |> advance()
-          |> consume_double_quote(string.concat([arg, value]))
+          |> append_to_arg(value)
+          |> consume_double_quote()
       }
     }
   }
 }
 
-fn consume_double_quote_escaped(parser: Parser, arg: String) -> Parser {
+fn consume_double_quote_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg(arg)
+      parser |> advance() |> change_mode(End) |> add_arg()
     }
     option.Some(value) ->
       case value {
-        "\"" ->
-          advance(parser) |> consume_double_quote(string.concat([arg, value]))
+        "\"" | "\\" ->
+          advance(parser) |> append_to_arg(value) |> consume_double_quote()
         _ ->
-          advance(parser) |> consume_double_quote(string.concat([arg, value]))
+          advance(parser)
+          |> append_to_arg(value)
+          |> consume_double_quote()
       }
   }
 }
 
-fn consume_single_quote(parser: Parser, arg: String) -> Parser {
+fn consume_single_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> change_mode(End) |> add_arg(arg)
+      parser |> advance() |> change_mode(End) |> add_arg()
     }
     option.Some(value) -> {
       case value == "'" {
         True ->
-          case arg {
-            "" -> parser |> advance() |> consume_single_quote(arg)
-            _ -> parser |> advance() |> add_arg(arg) |> determine_mode()
+          case parser.current_arg {
+            "" -> parser |> advance() |> consume_single_quote()
+            _ -> parser |> advance() |> add_arg() |> determine_mode()
           }
         False ->
           parser
           |> advance()
-          |> consume_single_quote(string.concat([arg, value]))
+          |> append_to_arg(value)
+          |> consume_single_quote()
       }
     }
   }
@@ -180,5 +201,17 @@ fn determine_mode(parser: Parser) -> Parser {
       }
     }
   }
-  change_mode(parser, mode)
+  parser |> add_arg_if_needed(mode) |> change_mode(mode)
+}
+
+fn add_arg_if_needed(parser: Parser, new_mode: ParserMode) -> Parser {
+  case parser.current_arg == "" {
+    True -> parser
+    False -> {
+      case new_mode {
+        End | Whitespace -> add_arg(parser)
+        _ -> parser
+      }
+    }
+  }
 }
