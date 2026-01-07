@@ -88,7 +88,12 @@ fn skip_whitespace(parser: Parser) -> Parser {
 }
 
 fn append_to_arg(parser: Parser, value: String) -> Parser {
-  Parser(..parser, current_arg: string.concat([parser.current_arg, value]))
+  let current_arg = case value, string.last(parser.current_arg) {
+    "'", Ok("'") | "\"", Ok("\"") ->
+      string.slice(parser.current_arg, 0, string.length(parser.current_arg) - 1)
+    _, _ -> string.concat([parser.current_arg, value])
+  }
+  Parser(..parser, current_arg: current_arg)
 }
 
 fn add_arg(parser: Parser) -> Parser {
