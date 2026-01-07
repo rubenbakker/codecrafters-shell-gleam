@@ -57,11 +57,24 @@ fn advance(parser: Parser) -> Parser {
 }
 
 fn push_mode(parser: Parser, mode: ParserMode) -> Parser {
+  echo #("push_mode", parser, mode)
   Parser(..parser, mode: list.prepend(parser.mode, mode))
 }
 
 fn pop_mode(parser: Parser) -> Parser {
+  echo #("pop_mode", parser)
   Parser(..parser, mode: list.drop(parser.mode, 1))
+}
+
+fn pop_mode_with_value(parser: Parser, value: String) -> Parser {
+  let parser = Parser(..parser, mode: list.drop(parser.mode, 1))
+  let assert Ok(mode) = list.first(parser.mode)
+  {
+    case mode {
+      DoubleQuote -> parser |> append_to_arg(value)
+      _ -> parser
+    }
+  }
 }
 
 fn skip_whitespace(parser: Parser) -> Parser {
@@ -136,9 +149,13 @@ fn consume_double_quote(parser: Parser) -> Parser {
         "\"" ->
           case parser.current_arg {
             "" -> parser |> advance() |> consume_double_quote()
-            _ -> parser |> advance() |> determine_and_push_mode()
+            _ -> parser |> advance() |> push_mode(SingleQuote)
           }
-        "'" -> parser |> append_to_arg(value) |> determine_and_push_mode()
+        "'" ->
+          parser
+          |> advance()
+          |> append_to_arg(value)
+          |> push_mode(SingleQuote)
         "\\" -> parser |> advance() |> consume_double_quote_escaped()
         _ ->
           parser
@@ -179,7 +196,7 @@ fn consume_single_quote(parser: Parser) -> Parser {
         True -> {
           case parser.current_arg {
             "" -> parser |> advance() |> consume_single_quote()
-            _ -> parser |> advance() |> pop_mode()
+            _ -> parser |> advance() |> pop_mode_with_value(value)
           }
         }
         False ->
