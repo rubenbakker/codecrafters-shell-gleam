@@ -144,11 +144,7 @@ fn consume_double_quote(parser: Parser) -> Parser {
     }
     option.Some(value) -> {
       case value {
-        "\"" ->
-          case parser.current_arg {
-            "" -> parser |> advance() |> consume_double_quote()
-            _ -> parser |> advance() |> pop_mode()
-          }
+        "\"" -> parser |> advance() |> pop_mode()
         "'" ->
           parser
           |> advance()
@@ -191,12 +187,7 @@ fn consume_single_quote(parser: Parser) -> Parser {
     }
     option.Some(value) -> {
       case value == "'" {
-        True -> {
-          case parser.current_arg {
-            "" -> parser |> advance() |> consume_single_quote()
-            _ -> parser |> advance() |> pop_mode_with_value(value)
-          }
-        }
+        True -> parser |> advance() |> pop_mode_with_value(value)
         False ->
           parser
           |> advance()
@@ -224,7 +215,17 @@ fn determine_and_push_mode(parser: Parser) -> Parser {
       }
     }
   }
-  parser |> add_arg_if_needed(mode) |> push_mode(mode)
+  parser
+  |> add_arg_if_needed(mode)
+  |> advance_if_needed(mode)
+  |> push_mode(mode)
+}
+
+fn advance_if_needed(parser: Parser, mode: ParserMode) -> Parser {
+  case mode {
+    SingleQuote | DoubleQuote -> advance(parser)
+    _ -> parser
+  }
 }
 
 fn add_arg_if_needed(parser: Parser, new_mode: ParserMode) -> Parser {
