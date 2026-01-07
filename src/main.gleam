@@ -14,7 +14,7 @@ pub fn main() {
 
 fn repl() -> Nil {
   let assert Ok(input_line) = externalutils.get_line("$ ")
-  let assert Ok(args) = parser.parse(input_line)
+  let assert Ok(args) = parser.parse_args(input_line)
   case args {
     ["exit"] -> {
       externalutils.exit(0)
