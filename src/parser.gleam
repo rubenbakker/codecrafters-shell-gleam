@@ -57,12 +57,10 @@ fn advance(parser: Parser) -> Parser {
 }
 
 fn push_mode(parser: Parser, mode: ParserMode) -> Parser {
-  echo #("push_mode", parser, mode)
   Parser(..parser, mode: list.prepend(parser.mode, mode))
 }
 
 fn pop_mode(parser: Parser) -> Parser {
-  echo #("pop_mode", parser)
   Parser(..parser, mode: list.drop(parser.mode, 1))
 }
 
