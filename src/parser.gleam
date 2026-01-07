@@ -177,7 +177,6 @@ fn consume_single_quote(parser: Parser) -> Parser {
     option.Some(value) -> {
       case value == "'" {
         True -> {
-          echo #(parser, value)
           case parser.current_arg {
             "" -> parser |> advance() |> consume_single_quote()
             _ -> parser |> advance() |> pop_mode()
