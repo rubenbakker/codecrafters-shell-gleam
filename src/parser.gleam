@@ -147,7 +147,7 @@ fn consume_double_quote(parser: Parser) -> Parser {
         "\"" ->
           case parser.current_arg {
             "" -> parser |> advance() |> consume_double_quote()
-            _ -> parser |> advance() |> push_mode(SingleQuote)
+            _ -> parser |> advance() |> pop_mode()
           }
         "'" ->
           parser
