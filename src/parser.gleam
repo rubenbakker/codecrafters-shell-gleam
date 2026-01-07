@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/option
+import gleam/result
 import gleam/string
 import string_reader.{type Reader}
 
@@ -9,7 +10,7 @@ const non_word = [" ", "\r", "\n", "\t", "\"", "'"]
 
 pub type ParseError
 
-pub fn parse(arg_string: String) -> Result(List(String), ParseError) {
+pub fn parse(arg_string: String) -> Result(List(String), Nil) {
   create_parser(arg_string) |> parse_to_end()
 }
 
@@ -24,7 +25,7 @@ type ParserMode {
 type Parser {
   Parser(
     reader: Reader,
-    mode: ParserMode,
+    mode: List(ParserMode),
     args: List(String),
     current_arg: String,
   )
@@ -33,14 +34,15 @@ type Parser {
 fn create_parser(arg_string: String) -> Parser {
   Parser(
     reader: string_reader.reader(arg_string),
-    mode: Whitespace,
+    mode: [Whitespace],
     args: [],
     current_arg: "",
   )
 }
 
-fn parse_to_end(parser: Parser) -> Result(List(String), ParseError) {
-  case parser.mode {
+fn parse_to_end(parser: Parser) -> Result(List(String), Nil) {
+  use mode <- result.try(list.first(parser.mode))
+  case mode {
     Whitespace -> skip_whitespace(parser) |> parse_to_end()
     Word -> consume_word(parser) |> parse_to_end()
     DoubleQuote -> consume_double_quote(parser) |> parse_to_end()
@@ -54,18 +56,22 @@ fn advance(parser: Parser) -> Parser {
   Parser(..parser, reader: reader)
 }
 
-fn change_mode(parser: Parser, mode: ParserMode) -> Parser {
-  Parser(..parser, mode: mode)
+fn push_mode(parser: Parser, mode: ParserMode) -> Parser {
+  Parser(..parser, mode: list.prepend(parser.mode, mode))
+}
+
+fn pop_mode(parser: Parser) -> Parser {
+  Parser(..parser, mode: list.drop(parser.mode, 1))
 }
 
 fn skip_whitespace(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
-    option.None -> parser |> advance() |> change_mode(End)
+    option.None -> parser |> advance() |> push_mode(End)
     option.Some(value) ->
       case list.contains(whitespace, value) {
         True -> advance(parser) |> skip_whitespace()
-        False -> determine_mode(parser)
+        False -> parser |> pop_mode() |> determine_and_push_mode()
       }
   }
 }
@@ -90,7 +96,7 @@ fn consume_word(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> determine_mode()
+      parser |> advance() |> pop_mode() |> determine_and_push_mode()
     }
     option.Some(value) -> {
       case value {
@@ -100,7 +106,7 @@ fn consume_word(parser: Parser) -> Parser {
         _ -> {
           case !list.contains(non_word, value) {
             True -> advance(parser) |> append_to_arg(value) |> consume_word()
-            False -> parser |> determine_mode()
+            False -> parser |> determine_and_push_mode()
           }
         }
       }
@@ -112,7 +118,7 @@ fn consume_word_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> determine_mode()
+      parser |> advance() |> determine_and_push_mode()
     }
     option.Some(value) ->
       advance(parser) |> append_to_arg(value) |> consume_word()
@@ -123,16 +129,16 @@ fn consume_double_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> determine_mode()
+      parser |> advance() |> determine_and_push_mode()
     }
     option.Some(value) -> {
       case value {
         "\"" ->
           case parser.current_arg {
             "" -> parser |> advance() |> consume_double_quote()
-            _ -> parser |> advance() |> determine_mode()
+            _ -> parser |> advance() |> determine_and_push_mode()
           }
-        "'" -> parser |> append_to_arg(value) |> determine_mode()
+        "'" -> parser |> append_to_arg(value) |> determine_and_push_mode()
         "\\" -> parser |> advance() |> consume_double_quote_escaped()
         _ ->
           parser
@@ -148,7 +154,7 @@ fn consume_double_quote_escaped(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> determine_mode()
+      parser |> advance() |> determine_and_push_mode()
     }
     option.Some(value) ->
       case value {
@@ -166,15 +172,17 @@ fn consume_single_quote(parser: Parser) -> Parser {
   let next = string_reader.peek(parser.reader)
   case next {
     option.None -> {
-      parser |> advance() |> determine_mode()
+      parser |> advance() |> determine_and_push_mode()
     }
     option.Some(value) -> {
       case value == "'" {
-        True ->
+        True -> {
+          echo #(parser, value)
           case parser.current_arg {
             "" -> parser |> advance() |> consume_single_quote()
-            _ -> parser |> advance() |> determine_mode()
+            _ -> parser |> advance() |> pop_mode()
           }
+        }
         False ->
           parser
           |> advance()
@@ -185,7 +193,7 @@ fn consume_single_quote(parser: Parser) -> Parser {
   }
 }
 
-fn determine_mode(parser: Parser) -> Parser {
+fn determine_and_push_mode(parser: Parser) -> Parser {
   let value = string_reader.peek(parser.reader)
   let mode = case value {
     option.None -> End
@@ -202,7 +210,7 @@ fn determine_mode(parser: Parser) -> Parser {
       }
     }
   }
-  parser |> add_arg_if_needed(mode) |> change_mode(mode)
+  parser |> add_arg_if_needed(mode) |> push_mode(mode)
 }
 
 fn add_arg_if_needed(parser: Parser, new_mode: ParserMode) -> Parser {
