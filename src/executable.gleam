@@ -8,6 +8,10 @@ import gleam/set
 import gleam/string
 import simplifile
 
+pub type ExecInfo {
+  ExecInfo(command: String, args: List(String), output: option.Option(String))
+}
+
 pub fn find_executable(command) -> option.Option(String) {
   let assert Ok(path) = envoy.get("PATH")
   let path =
@@ -20,22 +24,28 @@ pub fn find_executable(command) -> option.Option(String) {
   }
 }
 
-pub fn execute(command, args) -> Nil {
-  case find_executable(command) {
+pub fn execute(exec_info: ExecInfo) -> Nil {
+  case find_executable(exec_info.command) {
     option.Some(_) -> {
       let assert Ok(output) =
         shellout.command(
-          run: command,
-          alias: command,
+          run: exec_info.command,
+          alias: exec_info.command,
           in: ".",
-          with: args,
+          with: exec_info.args,
           opt: [],
         )
-      io.print(output)
+      case exec_info.output {
+        option.Some(file) -> {
+          let _ = simplifile.write(to: file, contents: output)
+          Nil
+        }
+        option.None -> io.print(output)
+      }
       Nil
     }
     option.None -> {
-      io.println(command <> ": command not found")
+      io.println(exec_info.command <> ": command not found")
       Nil
     }
   }
@@ -51,5 +61,14 @@ fn check_executable(path, command) -> Bool {
       set.contains(permission.user, simplifile.Execute)
     }
     _ -> False
+  }
+}
+
+pub fn prepare_execute(command: String, args: List(String)) -> ExecInfo {
+  case list.reverse(args) {
+    [file, ">", ..rest] | [file, "1>", ..rest] -> {
+      ExecInfo(command:, args: list.reverse(rest), output: option.Some(file))
+    }
+    _ -> ExecInfo(command:, args:, output: option.None)
   }
 }

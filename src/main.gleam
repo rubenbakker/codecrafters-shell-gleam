@@ -4,8 +4,10 @@ import externalutils
 import gleam/erlang/charlist
 import gleam/int
 import gleam/io
+import gleam/option
 import gleam/string
 import parser
+import simplifile
 import typebuiltin
 
 pub fn main() {
@@ -27,7 +29,18 @@ fn repl() -> Nil {
       typebuiltin.perform(command)
     }
     ["echo", ..args] -> {
-      io.println(string.join(args, " "))
+      let exec_info = executable.prepare_execute("echo", args)
+      case exec_info.output {
+        option.Some(file) -> {
+          let _ =
+            simplifile.write(
+              to: file,
+              contents: string.join(exec_info.args, " ") <> "\n",
+            )
+          Nil
+        }
+        option.None -> io.println(string.join(exec_info.args, " "))
+      }
     }
     ["pwd"] -> {
       let assert Ok(path) = externalutils.get_cwd()
@@ -37,7 +50,7 @@ fn repl() -> Nil {
       cdbuiltin.perform(dir)
     }
     [command, ..rest] -> {
-      executable.execute(command, rest)
+      executable.prepare_execute(command, rest) |> executable.execute()
     }
     [] -> Nil
   }
