@@ -27,7 +27,7 @@ pub fn find_executable(command) -> option.Option(String) {
 pub fn execute(exec_info: ExecInfo) -> Nil {
   case find_executable(exec_info.command) {
     option.Some(_) -> {
-      let assert Ok(output) =
+      let result =
         shellout.command(
           run: exec_info.command,
           alias: exec_info.command,
@@ -35,6 +35,10 @@ pub fn execute(exec_info: ExecInfo) -> Nil {
           with: exec_info.args,
           opt: [],
         )
+      let output = case result {
+        Ok(output) -> output
+        Error(#(_, output)) -> output
+      }
       case exec_info.output {
         option.Some(file) -> {
           let _ = simplifile.write(to: file, contents: output)
